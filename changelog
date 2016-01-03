@@ -1,3 +1,7 @@
+2.2.8
+
+* Expose Flow for use in Fibers version of asyncblock
+
 2.2.7
 
 * Throw error when creating an asyncblock without a generator function
