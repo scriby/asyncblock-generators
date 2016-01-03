@@ -45,17 +45,19 @@ fs.readdir(codeDir, function(err, list){
        proto: true
    };
 
-    asyncblock(function(flow){
-        list.forEach(function(file){
+    asyncblock(function*(flow){
+        for (var i = 0; i < list.length; i++) {
+            var file = list[i];
+
             var fullPath = path.join(codeDir, file);
 
-            var fileContents = flow.sync( fs.readFile(fullPath, 'utf8', flow.callback()) );
+            var fileContents = yield flow.sync( fs.readFile(fullPath, 'utf8', flow.callback()) );
 
             var result = JSHINT(fileContents, options);
 
             if(!result){
                 showErrors(fullPath, JSHINT.data());
             }
-        });
+        }
     });
 });

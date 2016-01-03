@@ -1,1 +1,1 @@
-./node_modules/vows/bin/vows ./benchmark/benchmark.js
+node ./node_modules/vows/bin/vows ./benchmark/benchmark.js

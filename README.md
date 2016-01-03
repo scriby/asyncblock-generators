@@ -9,15 +9,14 @@ _  __ `/__  ___/__  / / /__  __ \_  ___/__  __ \__  / _  __ \_  ___/__  //_/
 ```
 ==================================================================
 
-A fully fledged flow control library built on top of fibers.
+A synchronous-style flow control library built on top of harmony generators. This library started its life as [asyncblock](https://github.com/scriby/asyncblock),
+which was written on top of Fibers.
 
 ###Installation
 
 ```javascript
-npm install asyncblock
+npm install asyncblock-generators
 ```
-
-See [node-fibers](https://github.com/laverdet/node-fibers) for more information on fibers
 
 ### Why should I use asyncblock?
 
@@ -31,10 +30,31 @@ See [node-fibers](https://github.com/laverdet/node-fibers) for more information 
     * Line numbers don't change. What's in the stack trace maps directly to your code (You may lose this with CPS transforms)
     * If using a debugger, it's easy to step line-by-line through asyncblock code (compared to async libraries)
 
+## Usage differences between this module and asyncblock
+
+* All functions passed to an asyncblock must be generator functions (look like function*(){})
+* Any time you are waiting on a value to resolve the "yield" keyword must be used
+* There is a new shorthand for waiting on one item: `var x = yield fs.readFile(path, 'utf8');`
+* When using source transformation, .defer() and .future() calls may only be yielded once. (This is probably fixable, but I haven't looked into it yet)
+* asyncblock.getCurrentFiber() is not availabe in this module (this is not commonly used)
+
+Cheat sheet for when yield must be used:
+
+* `yield flow.wait();`
+* `yield flow.get('key');`
+* `yield flow.sync(setTimeout(flow.add(), 1000);`
+* `yield fs.readFile(path, 'utf8', flow.callback())`
+* `yield fs.readFile(path, 'utf8').sync()`
+* `var x = fs.readFile(path, 'utf8').defer(); console.log(yield x)`
+* `var x = fs.readFile(path, 'utf8').future(); console.log(yield x.result)`
+
+This library is unable to detect it if you accidentally forget to include a yield keyword. Please pay close attention to including it when necessary.
+
 ## Overview
 
 Check out the [overview](https://github.com/scriby/asyncblock/blob/master/docs/overview.md) to get an at-a-glance overview
-of the different ways asyncblock can be used.
+of the different ways asyncblock can be used. Please note that the docs are for the fibers version of asyncblock, and the examples
+will need to be translated to include * and yields for the generator version.
 
 ## Examples
 
@@ -43,14 +63,16 @@ A few quick examples to show off the functionality of asyncblock:
 ### Sleeping in series
 
 ```javascript
-asyncblock(function(flow){
+var ab = require('asyncblock');
+
+ab(function*(flow){
     console.time('time');
 
     setTimeout(flow.add(), 1000);
-    flow.wait(); //Wait for the first setTimeout to finish
+    yield flow.wait(); //Wait for the first setTimeout to finish
 
     setTimeout(flow.add(), 2000);
-    flow.wait(); //Wait for the second setTimeout to finish
+    yield flow.wait(); //Wait for the second setTimeout to finish
 
     console.timeEnd('time'); //3 seconds
 });
@@ -59,12 +81,14 @@ asyncblock(function(flow){
 ### Sleeping in parallel
 
 ```javascript
-asyncblock(function(flow){
+var ab = require('asyncblock');
+
+ab(function*(flow){
     console.time('time');
 
     setTimeout(flow.add(), 1000);
     setTimeout(flow.add(), 2000);
-    flow.wait(); //Wait for both setTimeouts to finish
+    yield flow.wait(); //Wait for both setTimeouts to finish
 
     console.timeEnd('time'); //2 seconds
 });
@@ -73,13 +97,15 @@ asyncblock(function(flow){
 ### Trapping results
 
 ```javascript
-asyncblock(function(flow) {
+var ab = require('asyncblock');
+
+ab(function*(flow) {
     //Start two parallel file reads
     fs.readFile(path1, 'utf8', flow.set('contents1'));
     fs.readFile(path2, 'utf8', flow.set('contents2'));
     
     //Print the concatenation of the results when both reads are finished
-    console.log(flow.get('contents1') + flow.get('contents2'));
+    console.log(yield flow.get('contents1') + yield flow.get('contents2'));
     
     //Wait for a large number of tasks
     for(var i = 0; i < 100; i++){
@@ -88,11 +114,12 @@ asyncblock(function(flow) {
     }
     
     //Wait for all the tasks to finish. Results is an object of the form {key1: value1, key2: value2, ...}
-    var results = flow.wait();
+    var results = yield flow.wait();
     
     //One-liner syntax for waiting on a single task
-    var contents = flow.sync( fs.readFile(path, 'utf8', flow.callback()) );
-    
+    var contents = yield fs.readFile(path, 'utf8', flow.callback());
+
+
     //See overview & API docs for more extensive description of techniques
 });
 ```
@@ -103,13 +130,17 @@ asyncblock(function(flow) {
 //asyncblock.enableTransform() must be called before requiring modules using this syntax.
 //See overview / API for more details
 
-asyncblock(function(flow) {
+var ab = require('asyncblock');
+
+if (ab.enableTransform(module)) { return; }
+
+ab(function*(flow) {
     //Start two parallel file reads
     var contents1 = fs.readFile(path1, 'utf8').defer();
     var contents2 = fs.readFile(path2, 'utf8').defer();
     
     //Print the concatenation of the results when both reads are finished
-    console.log(contents1 + contents2);
+    console.log(yield contents1 + yield contents2);
     
     var files = [];
     //Wait for a large number of tasks
@@ -120,37 +151,26 @@ asyncblock(function(flow) {
     
     //Get an array containing the file read results
     var results = files.map(function(future){
-        return future.result;
+        return yield future.result;
     });
     
     //One-liner syntax for waiting on a single task
-    var contents = fs.readFile(path, 'utf8').sync();
+    var contents = yield fs.readFile(path, 'utf8').sync();
     
     //See overview & API docs for more extensive description of techniques
 });
 ```
 
-### Error handling
+### Returning results and Error Handling
 
 ```javascript
-var asyncTask = function(callback) {
-    asyncblock(function(flow) {
-        flow.errorCallback = callback; //Setting the errorCallback is the easiest way to perform error handling. If erroCallback isn't set, and an error occurs, it will be thrown instead of returned to the callback
-        
-        fs.readFile(path, 'utf8', flow.add()); //If readFile encountered an error, it would automatically get passed to the callback
-        var contents = flow.wait();
-        
-        console.log(contents); //If an error occured above, this code won't run
-    });
-});
-```
+var ab = require('asyncblock');
 
-### Returning results
+if (ab.enableTransform(module)) { return; }
 
-```javascript
 var asyncTask = function(callback) {
-    asyncblock(function(flow) {
-        var contents = fs.readFile(path, 'utf8').sync(); //If readFile encountered an error, it would automatically get passed to the callback
+    ab(function*(flow) {
+        var contents = yield fs.readFile(path, 'utf8').sync(); //If readFile encountered an error, it would automatically get passed to the callback
 
         return contents; //Return the value you want to be passed to the callback
     }, callback); //The callback can be specified as the 2nd arg to asyncblock. It will be called with the value returned from the asyncblock as the 2nd arg.
@@ -184,25 +204,16 @@ See [timeout documentation](https://github.com/scriby/asyncblock/blob/master/doc
 
 ## Concurrency
 
-Both fibers, and this module, do not increase concurrency in nodejs. There is still only one thread executing at a time.
-Fibers are threads which are allowed to pause and resume where they left off without blocking the event loop.
+Both generators, and this module, do not increase concurrency in nodejs. There is still only one thread executing at a time.
+Generators are like threads which are allowed to pause and resume where they left off without blocking the event loop.
 
 ## Risks
 
-* Fibers are fast, but they're not the fastest. CPU intensive tasks may prefer other solutions (you probably don't want to do CPU intensive work in node anyway...)
-* Not suitable for cases where a very large number are allocated and used for an extended period of time ([source](http://groups.google.com/group/nodejs/browse_thread/thread/ddd6e2756f1f4d8c/164f8f34d8261fdb?lnk=gst&q=fibers#164f8f34d8261fdb))
-* It requires V8 extensions, which are maintained in the node-fibers module
-     * In the worst case, if future versions of V8 break fibers support completely, a custom build of V8 would be required
-     * In the best case, V8 builds in support for coroutines directly, and asyncblock becomes based on that
-* When new versions of node (V8) come out, you may have to wait longer to upgrade if the fibers code needs to be adjusted to work with it
-
-Note that when V8 supports generators, which is currently planned, the source transformation functionality of asyncblock will be able to transform
-most of the asyncblock code to be based on generators instead of fibers with no change to the original source. This helps
-reduce risk as it provides a path forward for asyncblock even if support for fibers became impossible in the future.
+* Generators are fast, but they're not the fastest. CPU intensive tasks may prefer other solutions (you probably don't want to do CPU intensive work in node anyway...)
 
 ## Compared to other solutions...
 
-A sample program in pure node, using the async library, and using asyncblock + fibers.
+A sample program in pure node, using the async library, and using asyncblock-generators.
 
 ### Pure node
 
@@ -300,23 +311,22 @@ async.series([
 );
 ```
 
-### Using asyncblock + fibers
+### Using asyncblock-generators
 
 ```javascript
+var ab = require('asyncblock');
 
-var asyncblock = require('asyncblock');
-
-asyncblock(function(flow){
+ab(function*(flow){
     fs.readFile('path1', 'utf8', flow.add('first'));
     fs.readFile('path2', 'utf8', flow.add('second'));
     
     //Wait until done reading the first and second files, then write them to another file
-    fs.writeFile('path3', flow.wait('first') + flow.wait('second'), flow.add()); 
-    flow.wait(); //Wait on all outstanding tasks
+    fs.writeFile('path3', yield flow.wait('first') + yield flow.wait('second'), flow.add());
+    yield flow.wait(); //Wait on all outstanding tasks
 
     fs.readFile('path3', 'utf8', flow.add('data'));
 
-    console.log(flow.wait('data')); //Print the 3rd file's data
+    console.log(yield flow.wait('data')); //Print the 3rd file's data
     console.log('all done');
 });
 ```
@@ -325,17 +335,19 @@ asyncblock(function(flow){
 
 ```javascript
 //Requires asyncblock.enableTransform to be called before requiring this module
-var asyncblock = require('asyncblock');
+var ab = require('asyncblock');
 
-asyncblock(function(flow){
+if (ab.enableTransform(module)) { return; }
+
+ab(function*(flow){
     var first = fs.readFile('path1', 'utf8').defer();
     var second = fs.readFile('path2', 'utf8').defer();
     
-    fs.writeFile('path3', first + second).sync();
+    fs.writeFile('path3', yield first + yield second).sync();
 
     var third = fs.readFile('path3', 'utf8').defer();
 
-    console.log(third);
+    console.log(yield third);
     console.log('all done');
 });
 ```
