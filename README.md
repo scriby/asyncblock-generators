@@ -63,7 +63,7 @@ A few quick examples to show off the functionality of asyncblock:
 ### Sleeping in series
 
 ```javascript
-var ab = require('asyncblock');
+var ab = require('asyncblock-generators');
 
 ab(function*(flow){
     console.time('time');
@@ -81,7 +81,7 @@ ab(function*(flow){
 ### Sleeping in parallel
 
 ```javascript
-var ab = require('asyncblock');
+var ab = require('asyncblock-generators');
 
 ab(function*(flow){
     console.time('time');
@@ -97,7 +97,7 @@ ab(function*(flow){
 ### Trapping results
 
 ```javascript
-var ab = require('asyncblock');
+var ab = require('asyncblock-generators');
 
 ab(function*(flow) {
     //Start two parallel file reads
@@ -130,7 +130,7 @@ ab(function*(flow) {
 //asyncblock.enableTransform() must be called before requiring modules using this syntax.
 //See overview / API for more details
 
-var ab = require('asyncblock');
+var ab = require('asyncblock-generators');
 
 if (ab.enableTransform(module)) { return; }
 
@@ -164,7 +164,7 @@ ab(function*(flow) {
 ### Returning results and Error Handling
 
 ```javascript
-var ab = require('asyncblock');
+var ab = require('asyncblock-generators');
 
 if (ab.enableTransform(module)) { return; }
 
@@ -314,7 +314,7 @@ async.series([
 ### Using asyncblock-generators
 
 ```javascript
-var ab = require('asyncblock');
+var ab = require('asyncblock-generators');
 
 ab(function*(flow){
     fs.readFile('path1', 'utf8', flow.add('first'));
@@ -335,7 +335,7 @@ ab(function*(flow){
 
 ```javascript
 //Requires asyncblock.enableTransform to be called before requiring this module
-var ab = require('asyncblock');
+var ab = require('asyncblock-generators');
 
 if (ab.enableTransform(module)) { return; }
 
