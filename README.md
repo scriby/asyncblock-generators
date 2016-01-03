@@ -34,7 +34,7 @@ npm install asyncblock-generators
 
 * All functions passed to an asyncblock must be generator functions (look like function*(){})
 * Any time you are waiting on a value to resolve the "yield" keyword must be used
-* There is a new shorthand for waiting on one item: `var x = yield fs.readFile(path, 'utf8');`
+* There is a new shorthand for waiting on one item: `var x = yield fs.readFile(path, 'utf8', flow.callback());`
 * When using source transformation, .defer() and .future() calls may only be yielded once. (This is probably fixable, but I haven't looked into it yet)
 * asyncblock.getCurrentFiber() is not availabe in this module (this is not commonly used)
 
