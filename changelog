@@ -1,3 +1,7 @@
+2.2.7
+
+* Throw error when creating an asyncblock without a generator function
+
 2.2.6
 
 * Initial release of asyncblock-generators
