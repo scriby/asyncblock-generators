@@ -1,3 +1,7 @@
+2.2.9
+
+* Fix an issue with transformation when using asyncblock-generators
+
 2.2.8
 
 * Expose Flow for use in Fibers version of asyncblock
