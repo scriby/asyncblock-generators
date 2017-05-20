@@ -1,6 +1,6 @@
 {
   "name": "asyncblock-generators",
-  "version": "2.2.9",
+  "version": "2.2.10",
   "description": "asyncblock without the fibers",
   "keywords": [
     "fiber",
