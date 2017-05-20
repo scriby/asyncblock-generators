@@ -67,7 +67,7 @@ declare module _ab {
   function ab<T>(run: () => T, done?: Function): ab.Result<T>;
 }
 
-declare module "asyncblock" {
+declare module "asyncblock-generators" {
   import ab = _ab.ab;
   export = ab;
 }
