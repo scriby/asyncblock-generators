@@ -1,6 +1,6 @@
 {
   "name": "asyncblock-generators",
-  "version": "2.2.11",
+  "version": "2.2.12",
   "description": "asyncblock without the fibers",
   "keywords": [
     "fiber",
@@ -20,7 +20,7 @@
     "url": "git://github.com/scriby/asyncblock-generators.git"
   },
   "dependencies": {
-    "esprima": "2.6.0"
+    "esprima": "4.0.0"
   },
   "devDependencies": {
     "vows": "0.7.0",
